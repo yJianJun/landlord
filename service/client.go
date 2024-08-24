@@ -47,6 +47,7 @@ var (
 	}
 )
 
+// UserId 是一个整型，用于表示用户的唯一标识符。
 type UserId int
 
 // UserInfo 表示用户信息。它包含用户的 ID、用户名、硬币数量和角色。
