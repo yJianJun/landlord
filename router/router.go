@@ -1,9 +1,9 @@
 package router
 
 import (
-	"net/http"
-	"landlord/service"
 	"landlord/controllers"
+	"landlord/service"
+	"net/http"
 )
 
 func init() {

@@ -2,33 +2,49 @@ package service
 
 import (
 	"bytes"
-	"net/http"
-	"time"
-	"github.com/gorilla/websocket"
-	"github.com/astaxie/beego/logs"
 	"encoding/json"
+	"github.com/astaxie/beego/logs"
+	"github.com/gorilla/websocket"
 	"landlord/common"
+	"net/http"
 	"strconv"
+	"time"
 )
 
 const (
-	writeWait      = 1 * time.Second
-	pongWait       = 60 * time.Second
-	pingPeriod     = (pongWait * 9) / 10
+
+	// writeWait 是一个常量，表示允许向连接写入消息的最长时间。
+	writeWait = 1 * time.Second
+
+	// pongWait 是允许等待客户端 pong 响应的最长时间。
+	pongWait = 60 * time.Second
+
+	// pingPeriod 表示客户端发送 ping 消息的时间间隔。
+	pingPeriod = (pongWait * 9) / 10
+
+	// maxMessageSize 是 websocket 消息允许的最大大小。
 	maxMessageSize = 512
 
-	RoleFarmer   = 0
+	// RoleFarmer代表系统中分配给农民的角色值。
+	RoleFarmer = 0
+
+	// RoleLandlord 是一个常量，代表游戏中地主的角色。
+	// 它的值为 1。
 	RoleLandlord = 1
 )
 
 var (
-	newline  = []byte{'\n'}
-	space    = []byte{' '}
+	// 换行符表示包含换行符 (\n) 的字节片。
+	newline = []byte{'\n'}
+
+	// `space` 是一个 []byte 类型的变量，包含单个空格字符。
+	space = []byte{' '}
+	// upGrader 是具有默认配置的 websocket.Upgrader 实例。
 	upGrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 		CheckOrigin:     func(r *http.Request) bool { return true },
-	}//不验证origin
+	}
 )
 
 type UserId int
@@ -48,13 +64,13 @@ type Client struct {
 	HandPokers []int
 	Ready      bool
 	IsCalled   bool    //是否叫完分
-	Next       *Client	//链表
+	Next       *Client //链表
 	IsRobot    bool
-	toRobot    chan []interface{}	//发送给robot的消息
-	toServer   chan []interface{}	//robot发送给服务器
+	toRobot    chan []interface{} //发送给robot的消息
+	toServer   chan []interface{} //robot发送给服务器
 }
 
-//重置状态
+// 重置状态
 func (c *Client) reset() {
 	c.UserInfo.Role = 1
 	c.HandPokers = make([]int, 0, 21)
@@ -62,7 +78,7 @@ func (c *Client) reset() {
 	c.IsCalled = false
 }
 
-//发送房间内已有的牌桌信息
+// 发送房间内已有的牌桌信息
 func (c *Client) sendRoomTables() {
 	res := make([][2]int, 0)
 	for _, table := range c.Room.Tables {
@@ -92,22 +108,22 @@ func (c *Client) sendMsg(msg []interface{}) {
 	if err != nil {
 		err = c.conn.Close()
 		if err != nil {
-			logs.Error("close client err: %v",err)
+			logs.Error("close client err: %v", err)
 		}
 	}
-	_,err = w.Write(msgByte)
+	_, err = w.Write(msgByte)
 	if err != nil {
-		logs.Error("Write msg [%v] err: %v",string(msgByte),err)
+		logs.Error("Write msg [%v] err: %v", string(msgByte), err)
 	}
 	if err := w.Close(); err != nil {
 		err = c.conn.Close()
 		if err != nil {
-			logs.Error("close err: %v",err)
+			logs.Error("close err: %v", err)
 		}
 	}
 }
 
-//光比客户端
+// 光比客户端
 func (c *Client) close() {
 	if c.Table != nil {
 		for _, client := range c.Table.TableClients {
@@ -142,7 +158,7 @@ func (c *Client) close() {
 	}
 }
 
-//可能是因为版本问题，导致有些未处理的error
+// 可能是因为版本问题，导致有些未处理的error
 func (c *Client) readPump() {
 	defer func() {
 		//logs.Debug("readPump exit")
@@ -178,7 +194,7 @@ func (c *Client) readPump() {
 	}
 }
 
-//心跳
+// 心跳
 func (c *Client) Ping() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {

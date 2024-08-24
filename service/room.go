@@ -1,8 +1,8 @@
 package service
 
 import (
-	"sync"
 	"github.com/astaxie/beego/logs"
+	"sync"
 )
 
 var (
@@ -40,7 +40,7 @@ type Room struct {
 	EntranceFee int
 }
 
-//新建牌桌
+// 新建牌桌
 func (r *Room) newTable(client *Client) (table *Table) {
 	roomManager.Lock.Lock()
 	defer roomManager.Lock.Unlock()

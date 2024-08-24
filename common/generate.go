@@ -1,12 +1,16 @@
 package common
 
 import (
-	"os"
-	"github.com/astaxie/beego/logs"
-	"strconv"
 	"encoding/json"
+	"github.com/astaxie/beego/logs"
+	"os"
+	"strconv"
 )
 
+// write 检查当前目录中是否存在名为“rule.json”的文件。
+// 如果文件不存在，则调用generate函数。
+// 如果检查文件存在时出现错误，则会记录错误并返回。
+// 如果文件存在，该函数不执行任何操作。
 func write() {
 	path := "rule.json"
 	_, err := os.Stat(path)
@@ -20,7 +24,7 @@ func write() {
 	}
 }
 
-//生成连续num个的单牌的顺子
+// 生成连续num个的单牌的顺子
 func generateSeq(num int, seq []string) (res []string) {
 	for i, _ := range seq {
 		if i+num > 12 {
@@ -35,13 +39,19 @@ func generateSeq(num int, seq []string) (res []string) {
 	return
 }
 
-//生成num个不同单的组合
+// 组合生成 num 个不同单的组合。
+// 如果 num 为 0，则会出现恐慌并显示消息“generate err，组合计数不能为 0”。
+// 如果 seq 的长度小于 num，则会记录错误并显示消息“seq: %v,num:%d”。
+// 如果num为1，则返回seq。
+// 如果 seq 的长度等于 num，它将连接 seq 中的所有单数并将其作为单个组合返回。
+// 它递归地调用自身来生成不包含 seq 中第一个单曲的组合以及包含 seq 中第一个单曲的组合。
+// 然后它组合结果并返回它们。
 func combination(seq []string, num int) (comb []string) {
 	if num == 0 {
 		panic("generate err , combination count can not be 0")
 	}
 	if len(seq) < num {
-		logs.Error("seq: %v,num:%d",seq,num)
+		logs.Error("seq: %v,num:%d", seq, num)
 		return
 		//panic("generate err , seq length less than num")
 	}
@@ -50,14 +60,14 @@ func combination(seq []string, num int) (comb []string) {
 	}
 	if len(seq) == num {
 		allSingle := ""
-		for _,single := range seq{
+		for _, single := range seq {
 			allSingle += single
 		}
 		return []string{allSingle}
 	}
-	noFirst := combination(seq[1:],num)
+	noFirst := combination(seq[1:], num)
 	hasFirst := []string(nil)
-	for _,comb := range combination(seq[1:],num-1) {
+	for _, comb := range combination(seq[1:], num-1) {
 		hasFirst = append(hasFirst, string(seq[0])+comb)
 	}
 	comb = append(comb, noFirst...)
@@ -65,6 +75,7 @@ func combination(seq []string, num int) (comb []string) {
 	return
 }
 
+// generate 生成一副扑克牌的规则，以及各种组合的情况，并将结果存储在名为"rule.json"的文件中。
 func generate() {
 	CARDS := "34567890JQKA2"
 	RULE := map[string][]string{}
@@ -117,7 +128,7 @@ func generate() {
 				for k, v := range seq {
 					if v[0] == seqTrio[i] {
 						copy(seq[k:], seq[k+1:])
-						seq = seq[:len(seq)-1 ]
+						seq = seq[:len(seq)-1]
 						break
 					}
 				}
@@ -150,29 +161,29 @@ func generate() {
 				seq = seq[:len(seq)-1]
 			}
 		}
-		for _,comb := range combination(seq,2){
-			RULE["bomb_single"] = append(RULE["bomb_single"],b+comb)
+		for _, comb := range combination(seq, 2) {
+			RULE["bomb_single"] = append(RULE["bomb_single"], b+comb)
 			if comb[0] != 'w' && comb[0] != 'W' && comb[1] != 'w' && comb[1] != 'W' {
-				RULE["bomb_pair"] = append(RULE["bomb_pair"],b+comb+comb)
+				RULE["bomb_pair"] = append(RULE["bomb_pair"], b+comb+comb)
 			}
 		}
 	}
 
-	res,err := json.Marshal(RULE)
+	res, err := json.Marshal(RULE)
 	if err != nil {
 		panic("json marsha1 RULE err :" + err.Error())
 	}
 	file, err := os.Create("rule.json")
-	defer func(){
+	defer func() {
 		err = file.Close()
 		if err != nil {
-			logs.Error("generate err: %v",err)
+			logs.Error("generate err: %v", err)
 		}
 	}()
 	if err != nil {
 		panic("create rule.json err:" + err.Error())
 	}
-	_,err = file.Write(res)
+	_, err = file.Write(res)
 	if err != nil {
 		panic("create rule.json err:" + err.Error())
 	}

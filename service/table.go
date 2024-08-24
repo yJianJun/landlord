@@ -48,7 +48,7 @@ func (table *Table) allCalled() bool {
 	return true
 }
 
-//一局结束
+// 一局结束
 func (table *Table) gameOver(client *Client) {
 	coin := table.Creator.Room.EntranceFee * table.GameManage.MaxCallScore * table.GameManage.Multiple
 	table.State = GameEnd
@@ -71,7 +71,7 @@ func (table *Table) gameOver(client *Client) {
 	logs.Debug("table[%d] game over", table.TableId)
 }
 
-//叫分阶段结束
+// 叫分阶段结束
 func (table *Table) callEnd() {
 	table.State = GamePlaying
 	table.GameManage.FirstCallScore = table.GameManage.FirstCallScore.Next
@@ -92,7 +92,7 @@ func (table *Table) callEnd() {
 	}
 }
 
-//客户端加入牌桌
+// 客户端加入牌桌
 func (table *Table) joinTable(c *Client) {
 	table.Lock.Lock()
 	defer table.Lock.Unlock()
@@ -126,7 +126,7 @@ func (table *Table) joinTable(c *Client) {
 	}
 }
 
-//加入机器人
+// 加入机器人
 func (table *Table) addRobot(room *Room) {
 	logs.Debug("robot [%v] join table", fmt.Sprintf("ROBOT-%d", len(table.TableClients)))
 	if len(table.TableClients) < 3 {
@@ -134,7 +134,7 @@ func (table *Table) addRobot(room *Room) {
 			Room:       room,
 			HandPokers: make([]int, 0, 21),
 			UserInfo: &UserInfo{
-				UserId:   table.getRobotID() ,
+				UserId:   table.getRobotID(),
 				Username: fmt.Sprintf("ROBOT-%d", len(table.TableClients)),
 				Coin:     10000,
 			},
@@ -147,20 +147,20 @@ func (table *Table) addRobot(room *Room) {
 	}
 }
 
-//生成随机robotID
-func (table *Table)getRobotID() (robot UserId) {
+// 生成随机robotID
+func (table *Table) getRobotID() (robot UserId) {
 	time.Sleep(time.Microsecond * 10)
 	rand.Seed(time.Now().UnixNano())
 	robot = UserId(rand.Intn(10000))
 	table.Lock.RLock()
 	defer table.Lock.RUnlock()
-	if _,ok := table.TableClients[robot];ok {
+	if _, ok := table.TableClients[robot]; ok {
 		return table.getRobotID()
 	}
 	return
 }
 
-//发牌
+// 发牌
 func (table *Table) dealPoker() {
 	logs.Debug("deal poker")
 	table.GameManage.Pokers = make([]int, 0)
@@ -213,7 +213,7 @@ func (table *Table) reset() {
 	}
 }
 
-//洗牌
+// 洗牌
 func (table *Table) ShufflePokers() {
 	logs.Debug("ShufflePokers")
 	r := rand.New(rand.NewSource(time.Now().Unix()))
@@ -225,8 +225,8 @@ func (table *Table) ShufflePokers() {
 	}
 }
 
-//同步用户信息
-func (table *Table) syncUser() () {
+// 同步用户信息
+func (table *Table) syncUser() {
 	logs.Debug("sync user")
 	response := make([]interface{}, 0, 3)
 	response = append(append(response, common.ResJoinTable), table.TableId)
