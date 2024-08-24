@@ -5,7 +5,7 @@ import (
 	"landlord/common"
 )
 
-// 处理websocket请求
+// wsRequest 处理 websocket 请求。
 func wsRequest(data []interface{}, client *Client) {
 	defer func() {
 		if r := recover(); r != nil {

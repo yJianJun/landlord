@@ -6,6 +6,16 @@ import (
 	"time"
 )
 
+// runRobot 运行玩游戏的机器人逻辑。
+// 它监听两个通道：`c.toServer` 和 `c.toRobot`。
+// 如果 `c.toServer` 有消息，它会使用 `wsRequest` 将消息发送到服务器。
+// 如果 `c.toRobot` 有消息，它会根据协议代码处理消息。
+// - 如果代码是 `common.ResDealPoker`，机器人将调用 autoCallScore 函数。
+// - 如果代码是 `common.ResCallScore`，机器人会检查是否需要调用分数，并在必要时调用 autoCallScore 函数。
+// - 如果代码是 `common.ResShotPoker`，机器人将调用 autoShotPoker 函数。
+// - 如果代码是 `common.ResShowPoker`，如果轮到或者没有人轮到并且机器人是地主，机器人将调用 autoShotPoker 函数。
+// - 如果代码是 `common.ResGameOver`，机器人将 `c.Ready` 设置为 true。
+// 该函数无限循环运行，直到“c.toServer”或“c.toRobot”通道关闭。
 func (c *Client) runRobot() {
 	for {
 		select {
@@ -77,7 +87,13 @@ func (c *Client) runRobot() {
 	}
 }
 
-// 自动出牌
+// autoShotPoker 自动出牌
+// 该方法判断机器人是否需要出牌，并根据规则选择要出的牌。
+// 如果机器人的出牌队列为空或者上一次出牌的玩家是机器人自己，
+// 机器人将选择手中的第一张牌进行出牌；否则，机器人将选择
+// 手中大于上一次出牌的牌进行出牌。
+// 出牌时，将牌转换为 float64 类型的数值，并将它们作为参数请求服务器。
+// 该方法可以捕获异常并在异常发生时进行日志记录。
 func (c *Client) autoShotPoker() {
 	//因为机器人休眠一秒后才出牌，有可能因用户退出而关闭chan
 	defer func() {
