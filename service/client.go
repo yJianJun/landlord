@@ -49,6 +49,11 @@ var (
 
 type UserId int
 
+// UserInfo 表示用户信息。它包含用户的 ID、用户名、硬币数量和角色。
+// 用户ID的类型为UserId，为整型。
+// 用户名是一个字符串，表示用户的名字。
+// 币是一个整数，代表用户拥有的币数量。
+// 角色是一个整数，代表用户的角色。
 type UserInfo struct {
 	UserId   UserId `json:"user_id"`
 	Username string `json:"username"`
@@ -56,6 +61,7 @@ type UserInfo struct {
 	Role     int
 }
 
+// Client代表连接到服务器的客户端。
 type Client struct {
 	conn       *websocket.Conn
 	UserInfo   *UserInfo
@@ -70,7 +76,7 @@ type Client struct {
 	toServer   chan []interface{} //robot发送给服务器
 }
 
-// 重置状态
+// 重置客户端的状态。
 func (c *Client) reset() {
 	c.UserInfo.Role = 1
 	c.HandPokers = make([]int, 0, 21)
@@ -78,17 +84,29 @@ func (c *Client) reset() {
 	c.IsCalled = false
 }
 
-// 发送房间内已有的牌桌信息
+// sendRoomTables 发送房间中存在的牌桌信息。
 func (c *Client) sendRoomTables() {
-	res := make([][2]int, 0)
-	for _, table := range c.Room.Tables {
-		if len(table.TableClients) < 3 {
-			res = append(res, [2]int{int(table.TableId), len(table.TableClients)})
+	res := make([][2]int, 0)              // 一个空切片，用于存储桌子信息
+	for _, table := range c.Room.Tables { // 遍历房间中的每张桌子
+		if len(table.TableClients) < 3 { // 如果桌子的客户端少于 3 个
+			res = append(res, [2]int{int(table.TableId), len(table.TableClients)}) // 将桌子的id以及桌子中的客户端数量添加到结果切片中
 		}
 	}
-	c.sendMsg([]interface{}{common.ResTableList, res})
+	c.sendMsg([]interface{}{common.ResTableList, res}) // 调用 sendMsg() 方法，传递一个包含 'ResTableList' 常量和结果切片的切片
 }
 
+// sendMsg 将消息发送给客户端。
+//
+// 参数 msg 是要发送的消息，类型为 []interface{}。
+//
+// 如果客户端是机器人，则将消息发送到 toRobot 通道并返回。
+//
+// 否则，将消息序列化为 JSON 字节流，并写入到 WebSocket 连接中。
+// 在写入操作之前，会设置写入超时时间为 writeWait。
+//
+// 如果在任何写入操作中发生错误，则记录错误日志，并关闭连接。
+//
+// 最后，关闭写入器 w 和连接。
 func (c *Client) sendMsg(msg []interface{}) {
 	if c.IsRobot {
 		c.toRobot <- msg
@@ -123,7 +141,7 @@ func (c *Client) sendMsg(msg []interface{}) {
 	}
 }
 
-// 光比客户端
+// 关闭光比客户端连接
 func (c *Client) close() {
 	if c.Table != nil {
 		for _, client := range c.Table.TableClients {
@@ -158,7 +176,8 @@ func (c *Client) close() {
 	}
 }
 
-// 可能是因为版本问题，导致有些未处理的error
+// 处理读取客户端消息的循环，如果发生错误并且错误不是预期的关闭错误，则记录错误并退出循环。
+// 将消息进行修整，并尝试将其解析为JSON格式，然后将其交给wsRequest函数处理。
 func (c *Client) readPump() {
 	defer func() {
 		//logs.Debug("readPump exit")
@@ -194,7 +213,7 @@ func (c *Client) readPump() {
 	}
 }
 
-// 心跳
+// Ping 心跳，定期向客户端发送 ping 消息
 func (c *Client) Ping() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
@@ -211,6 +230,28 @@ func (c *Client) Ping() {
 	}
 }
 
+// ServeWs 从 http 请求升级到 WebSocket 连接，并启动一个新的客户端进行处理。
+//
+// Args:
+// - w: http.ResponseWriter 类型，用于向客户端发送 HTTP 响应。
+// - r: *http.Request 类型，表示客户端的 HTTP 请求。
+//
+// Returns: 无返回值。
+//
+// Side Effects: 创建新的 WebSocket 连接，并初始化一个新的客户端实例。
+//
+// Behavior:
+// - 如果升级连接失败，将记录错误日志并返回。
+// - 如果成功升级连接，将根据客户端的 cookie 设置客户端的用户 ID 和用户名，并启动读取和发送心跳的 goroutine。
+// - 如果客户端的用户 ID 和用户名为空，则记录错误日志并关闭连接。
+//
+// Concurrency Safety: ServeWs 函数本身是并发安全的，但是在函数内部创建的客户端实例不是并发安全的，应注意。
+//
+// Design Constraints: 需要预先设置全局变量 upGrader，作为升级 WebSocket 的配置。
+//
+// Example Usage:
+//
+//	http.HandleFunc("/ws", ServeWs)
 func ServeWs(w http.ResponseWriter, r *http.Request) {
 	conn, err := upGrader.Upgrade(w, r, nil)
 	if err != nil {
